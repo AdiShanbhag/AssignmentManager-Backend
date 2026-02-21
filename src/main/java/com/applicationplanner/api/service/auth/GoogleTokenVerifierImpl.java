@@ -7,28 +7,40 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class GoogleTokenVerifierImpl implements GoogleTokenVerifier {
 
     private final GoogleIdTokenVerifier verifier;
 
-    public GoogleTokenVerifierImpl(@Value("${app.auth.google.client-id}") String clientId) {
+    public GoogleTokenVerifierImpl(
+            @Value("${app.auth.google.client-ids}") String clientIds
+    ) {
+
+        List<String> audiences = Arrays.stream(clientIds.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
+
         this.verifier = new GoogleIdTokenVerifier.Builder(
                 new NetHttpTransport(),
                 JacksonFactory.getDefaultInstance()
-        ).setAudience(Collections.singletonList(clientId)).build();
+        )
+                .setAudience(audiences)
+                .build();
     }
 
     @Override
     public GoogleUserPayload verify(String idToken) {
         try {
             GoogleIdToken token = verifier.verify(idToken);
-            if (token == null) throw new IllegalArgumentException("Invalid Google ID token");
+            if (token == null) {
+                throw new IllegalArgumentException("Invalid Google ID token");
+            }
 
             var payload = token.getPayload();
             return new GoogleUserPayload(
@@ -36,6 +48,7 @@ public class GoogleTokenVerifierImpl implements GoogleTokenVerifier {
                     payload.getEmail(),
                     (String) payload.get("name")
             );
+
         } catch (GeneralSecurityException | IOException e) {
             throw new RuntimeException("Failed to verify Google ID token", e);
         }

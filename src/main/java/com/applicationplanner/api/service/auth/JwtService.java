@@ -1,6 +1,7 @@
 package com.applicationplanner.api.service.auth;
 
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,12 @@ public class JwtService {
             @Value("${app.auth.jwt.secret}") String secret,
             @Value("${app.auth.jwt.ttl-seconds}") long ttlSeconds
     ) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
         this.ttlSeconds = ttlSeconds;
+
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET is not set");
+        }
     }
 
     public String issueToken(UUID userId) {
