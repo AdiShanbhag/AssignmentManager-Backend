@@ -8,10 +8,14 @@ import com.applicationplanner.api.record.AssignmentPlanView;
 import com.applicationplanner.api.repository.AssignmentRepository;
 import com.applicationplanner.api.repository.AvailabilityRepository;
 import com.applicationplanner.api.repository.TaskRepository;
+import com.applicationplanner.api.security.CurrentUser;
 import com.applicationplanner.api.service.PlannerService;
 import com.applicationplanner.api.service.PlanningOrchestratorService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -42,18 +46,18 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Override
     @Transactional
     public Assignment createAssignmentAndPlan(Assignment assignmentInput, LocalDate today) {
-        // planningDays fixed at creation: creation day -> due-1 (inclusive)
+        UUID userId = CurrentUser.requireUserId();
+
+        assignmentInput.setUserId(userId);
+
         Instant createdAt = Instant.now();
         assignmentInput.setCreatedAt(createdAt);
 
-        // createdDay should match frontend "startOfDay(new Date(createdAt))"
-        // easiest: use today passed into method (same day semantics)
         int planningDays = computePlanningDaysAtCreation(today, assignmentInput.getDueDate());
         assignmentInput.setPlanningDays(planningDays);
 
         Assignment saved = assignmentRepository.save(assignmentInput);
 
-        // Generate default tasks (exactly as frontend does now)
         List<Task> tasks = plannerService.generateDefaultTasks(
                 saved.getTitle(),
                 saved.getDueDate(),
@@ -62,19 +66,19 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
         );
         taskRepository.saveAll(tasks);
 
-        // Then global plan (frontend effect)
         recomputePlan(today);
-
         return saved;
     }
 
     @Override
     @Transactional
     public void removeAssignment(UUID assignmentId, LocalDate today) {
-        // delete tasks first (unless you have cascade)
-        List<Task> tasks = taskRepository.findByAssignmentId(assignmentId);
-        taskRepository.deleteAll(tasks);
-        assignmentRepository.deleteById(assignmentId);
+        UUID userId = CurrentUser.requireUserId();
+        Assignment owned = requireOwnedAssignment(assignmentId, userId);
+
+        // delete tasks by assignmentId (they’re implicitly owned)
+        taskRepository.deleteAll(taskRepository.findByAssignmentId(owned.getId()));
+        assignmentRepository.deleteByIdAndUserId(owned.getId(), userId);
 
         recomputePlan(today);
     }
@@ -82,47 +86,52 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Override
     @Transactional
     public void updateAssignmentAndPlan(UUID assignmentId, Assignment patch, LocalDate today) {
-        Assignment existing = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Assignment not found: " + assignmentId));
+        UUID userId = CurrentUser.requireUserId();
+        Assignment existing = requireOwnedAssignment(assignmentId, userId);
 
         if (patch.getTitle() != null) existing.setTitle(patch.getTitle());
         if (patch.getSubject() != null) existing.setSubject(patch.getSubject());
         if (patch.getDueDate() != null) existing.setDueDate(patch.getDueDate());
 
-        // planningDays stays fixed (matches frontend)
         assignmentRepository.save(existing);
 
-        // frontend triggers global plan via assignments change
         recomputePlan(today);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Availability getAvailabilityOrDefault() {
-        return availabilityRepository.findAll()
-                .stream()
-                .findFirst()
-                .orElse(defaultAvailability());
+        UUID userId = CurrentUser.requireUserId();
+
+        return availabilityRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    Availability a = defaultAvailability();
+                    a.setUserId(userId);
+                    return availabilityRepository.save(a);
+                });
     }
 
     @Override
     @Transactional
     public void setAvailabilityAndPlan(Availability nextAvailability, LocalDate today) {
-        // single-row approach: replace existing or create new
-        List<Availability> all = availabilityRepository.findAll();
-        if (!all.isEmpty()) {
-            Availability existing = all.get(0);
-            existing.setMonHours(nextAvailability.getMonHours());
-            existing.setTueHours(nextAvailability.getTueHours());
-            existing.setWedHours(nextAvailability.getWedHours());
-            existing.setThuHours(nextAvailability.getThuHours());
-            existing.setFriHours(nextAvailability.getFriHours());
-            existing.setSatHours(nextAvailability.getSatHours());
-            existing.setSunHours(nextAvailability.getSunHours());
-            availabilityRepository.save(existing);
-        } else {
-            availabilityRepository.save(nextAvailability);
-        }
+        UUID userId = CurrentUser.requireUserId();
+
+        Availability existing = availabilityRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    Availability a = defaultAvailability();
+                    a.setUserId(userId);
+                    return a;
+                });
+
+        existing.setMonHours(nextAvailability.getMonHours());
+        existing.setTueHours(nextAvailability.getTueHours());
+        existing.setWedHours(nextAvailability.getWedHours());
+        existing.setThuHours(nextAvailability.getThuHours());
+        existing.setFriHours(nextAvailability.getFriHours());
+        existing.setSatHours(nextAvailability.getSatHours());
+        existing.setSunHours(nextAvailability.getSunHours());
+
+        availabilityRepository.save(existing);
 
         recomputePlan(today);
     }
@@ -130,8 +139,10 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Override
     @Transactional
     public void updateTaskEffortAndPlan(UUID assignmentId, UUID taskId, int effortHours, LocalDate today) {
-        Task t = taskRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+        UUID userId = CurrentUser.requireUserId();
+        requireOwnedAssignment(assignmentId, userId);
+
+        Task t = requireTaskInAssignment(taskId, assignmentId);
 
         // enforce frontend clamp: 0..24 (logic match)
         int hours = Math.max(0, Math.min(24, effortHours));
@@ -145,8 +156,10 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Override
     @Transactional
     public void updateTaskTitleAndPlan(UUID assignmentId, UUID taskId, String title, LocalDate today) {
-        Task t = taskRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+        UUID userId = CurrentUser.requireUserId();
+        requireOwnedAssignment(assignmentId, userId);
+
+        Task t = requireTaskInAssignment(taskId, assignmentId);
 
         String trimmed = title == null ? "" : title.trim();
         if (trimmed.isEmpty()) return; // matches frontend (no update if empty)
@@ -160,25 +173,27 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Override
     @Transactional
     public void toggleTaskDoneAndPlan(UUID assignmentId, UUID taskId, LocalDate today) {
-        Task t = taskRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+        UUID userId = CurrentUser.requireUserId();
+        requireOwnedAssignment(assignmentId, userId);
+
+        Task t = requireTaskInAssignment(taskId, assignmentId);
 
         t.setDone(!t.isDone());
         taskRepository.save(t);
 
-        // applyMissedTaskShift to ALL tasks of this assignment (matches frontend toggleTask)
         List<Task> tasks = taskRepository.findByAssignmentId(assignmentId);
         List<Task> shifted = plannerService.applyMissedTaskShift(tasks, today);
         taskRepository.saveAll(shifted);
 
-        // then global plan (frontend effect runs after tasksById changes)
         recomputePlan(today);
     }
 
     @Override
     @Transactional
     public void recomputePlan(LocalDate today) {
-        List<Assignment> assignments = assignmentRepository.findAll();
+        UUID userId = CurrentUser.requireUserId();
+
+        List<Assignment> assignments = assignmentRepository.findAllByUserIdOrderByDueDateAsc(userId);
 
         assignments.sort(Comparator
                 .comparing(Assignment::getDueDate)
@@ -186,8 +201,10 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
                 .thenComparing(Assignment::getId)
         );
 
-        List<Task> allTasks = taskRepository.findAll();
         Availability availability = getAvailabilityOrDefault();
+
+        List<UUID> ids = assignments.stream().map(Assignment::getId).toList();
+        List<Task> allTasks = ids.isEmpty() ? List.of() : taskRepository.findAllByAssignmentIdIn(ids);
 
         Map<UUID, List<Task>> tasksByAssignmentId = groupTasksByAssignmentId(allTasks);
 
@@ -207,7 +224,8 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Override
     @Transactional(readOnly = true)
     public List<AssignmentPlanView> getPlanView(LocalDate today) {
-        List<Assignment> assignments = assignmentRepository.findAll();
+        UUID userId = CurrentUser.requireUserId();
+        List<Assignment> assignments = assignmentRepository.findAllByUserIdOrderByDueDateAsc(userId);
 
         // Sort the same way global planning does: earliest due date first (tie-breaker: createdAt/id)
         assignments.sort(Comparator
@@ -218,7 +236,9 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
 
         Availability availability = getAvailabilityOrDefault();
 
-        List<Task> allTasks = taskRepository.findAll();
+        List<UUID> ids = assignments.stream().map(Assignment::getId).toList();
+        List<Task> allTasks = ids.isEmpty() ? List.of() : taskRepository.findAllByAssignmentIdIn(ids);
+
         Map<UUID, List<Task>> grouped = groupTasksByAssignmentId(allTasks);
 
         Map<UUID, List<Task>> planned = plannerService.buildGlobalPlan(
@@ -244,12 +264,27 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     // Helpers
     // -----------------------
 
+    private Assignment requireOwnedAssignment(UUID assignmentId, UUID userId) {
+        return assignmentRepository.findByIdAndUserId(assignmentId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
     private Map<UUID, List<Task>> groupTasksByAssignmentId(List<Task> tasks) {
         Map<UUID, List<Task>> map = new HashMap<>();
         for (Task t : tasks) {
             map.computeIfAbsent(t.getAssignmentId(), k -> new ArrayList<>()).add(t);
         }
         return map;
+    }
+
+    private Task requireTaskInAssignment(UUID taskId, UUID assignmentId) {
+        Task t = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (!t.getAssignmentId().equals(assignmentId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return t;
     }
 
     private Availability defaultAvailability() {

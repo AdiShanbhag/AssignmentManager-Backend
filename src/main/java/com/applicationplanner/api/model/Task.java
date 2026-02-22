@@ -22,28 +22,29 @@ public class Task {
     @UuidGenerator
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(name = "assignment_id", nullable = false)
     private UUID assignmentId;
 
-    @Column(nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(name = "is_done", nullable = false)
     private boolean isDone;
 
-    private LocalDate targetDate; // nullable = unscheduled equivalent of ""
+    @Column(name = "target_date")
+    private LocalDate targetDate; // nullable = unscheduled equivalent
 
-    @Column(nullable = false)
+    @Column(name = "effort_hours", nullable = false)
     private int effortHours;
 
-    @Column(nullable = false)
+    @Column(name = "order_index", nullable = false)
     private int orderIndex;
 
-    @Column(nullable = false)
+    @Column(name = "is_unscheduled", nullable = false)
     private boolean isUnscheduled;
 
     @Transient
     private UnscheduledReason unscheduledReason;
 
-    public Task(){}
+    public Task() {}
 }

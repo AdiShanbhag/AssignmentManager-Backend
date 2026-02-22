@@ -3,8 +3,12 @@ package com.applicationplanner.api.repository;
 import com.applicationplanner.api.model.Availability;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface AvailabilityRepository extends JpaRepository<Availability, UUID> {
+public interface AvailabilityRepository extends JpaRepository<Availability, UUID>
+{
+    Optional<Availability> findByUserId(UUID userId);
 }

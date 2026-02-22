@@ -1,8 +1,8 @@
 package com.applicationplanner.api.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -10,12 +10,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@AllArgsConstructor
 @Getter
 @Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "assignments")
 public class Assignment {
+
     @Id
     @GeneratedValue
     @UuidGenerator
@@ -27,14 +28,20 @@ public class Assignment {
     @Column(nullable = false)
     private String subject;
 
-    @Column(nullable = false)
+    @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "planning_days", nullable = false)
     private int planningDays;
 
-    public Assignment(){};
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) createdAt = Instant.now();
+    }
 }

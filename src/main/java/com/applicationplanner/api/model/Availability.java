@@ -19,21 +19,33 @@ public class Availability {
     @Id
     @GeneratedValue
     @UuidGenerator
-    UUID id;
+    private UUID id;
 
-    @Column(nullable = false) private int monHours;
-    @Column(nullable = false) private int tueHours;
-    @Column(nullable = false) private int wedHours;
-    @Column(nullable = false) private int thuHours;
-    @Column(nullable = false) private int friHours;
-    @Column(nullable = false) private int satHours;
-    @Column(nullable = false) private int sunHours;
+    @Column(name = "mon_hours", nullable = false)
+    private int monHours;
 
-    public Availability(){}
+    @Column(name = "tue_hours", nullable = false)
+    private int tueHours;
 
-    private Availability defaultAvailability() {
-        return getAvailability();
-    }
+    @Column(name = "wed_hours", nullable = false)
+    private int wedHours;
+
+    @Column(name = "thu_hours", nullable = false)
+    private int thuHours;
+
+    @Column(name = "fri_hours", nullable = false)
+    private int friHours;
+
+    @Column(name = "sat_hours", nullable = false)
+    private int satHours;
+
+    @Column(name = "sun_hours", nullable = false)
+    private int sunHours;
+
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    public Availability() {}
 
     @NonNull
     public static Availability getAvailability() {
