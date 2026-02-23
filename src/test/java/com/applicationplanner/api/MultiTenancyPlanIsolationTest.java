@@ -4,7 +4,7 @@ import com.applicationplanner.api.model.Assignment;
 import com.applicationplanner.api.model.User;
 import com.applicationplanner.api.repository.AssignmentRepository;
 import com.applicationplanner.api.repository.UserRepository;
-import com.applicationplanner.api.service.auth.JwtService;
+import com.applicationplanner.api.auth.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
