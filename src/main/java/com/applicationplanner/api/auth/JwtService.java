@@ -1,4 +1,4 @@
-package com.applicationplanner.api.service.auth;
+package com.applicationplanner.api.auth;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;

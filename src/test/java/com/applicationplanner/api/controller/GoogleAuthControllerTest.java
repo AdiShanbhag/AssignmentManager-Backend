@@ -1,6 +1,6 @@
 package com.applicationplanner.api.controller;
 
-import com.applicationplanner.api.service.auth.GoogleTokenVerifier;
+import com.applicationplanner.api.auth.GoogleTokenVerifier;
 import com.applicationplanner.api.record.GoogleUserPayload;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

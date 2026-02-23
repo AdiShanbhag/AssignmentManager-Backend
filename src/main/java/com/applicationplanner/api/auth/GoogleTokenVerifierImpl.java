@@ -1,4 +1,4 @@
-package com.applicationplanner.api.service.auth;
+package com.applicationplanner.api.auth;
 
 import com.applicationplanner.api.record.GoogleUserPayload;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;

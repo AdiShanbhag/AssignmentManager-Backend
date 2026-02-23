@@ -1,6 +1,6 @@
 package com.applicationplanner.api.security;
 
-import com.applicationplanner.api.service.auth.JwtService;
+import com.applicationplanner.api.auth.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

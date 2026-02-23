@@ -1,7 +1,7 @@
 package com.applicationplanner.api.config;
 
 import com.applicationplanner.api.security.JwtAuthFilter;
-import com.applicationplanner.api.service.auth.JwtService;
+import com.applicationplanner.api.auth.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
