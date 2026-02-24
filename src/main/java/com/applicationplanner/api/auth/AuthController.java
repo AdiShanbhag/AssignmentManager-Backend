@@ -1,10 +1,7 @@
-package com.applicationplanner.api.controller;
+package com.applicationplanner.api.auth;
 
 import com.applicationplanner.api.dto.requestDTO.GoogleAuthRequest;
 import com.applicationplanner.api.dto.responseDTO.AuthResponse;
-import com.applicationplanner.api.auth.AuthService;
-import com.applicationplanner.api.auth.GoogleTokenVerifier;
-import com.applicationplanner.api.auth.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
