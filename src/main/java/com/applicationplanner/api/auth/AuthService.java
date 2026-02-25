@@ -56,4 +56,47 @@ public class AuthService {
 
         return user;
     }
+
+    @Transactional
+    public User loginDev(String email, String displayName) {
+
+        var existing = identityRepository
+                .findByProviderAndProviderSubject(AuthProvider.DEV, email);
+
+        if (existing.isPresent()) {
+            var user = existing.get().getUser();
+
+            if (email != null && !email.equals(user.getEmail())) {
+                user.setEmail(email);
+            }
+
+            if (displayName != null && !displayName.equals(user.getDisplayName())) {
+                user.setDisplayName(displayName);
+            }
+
+            return userRepository.save(user);
+        }
+
+        var now = OffsetDateTime.now();
+
+        var user = User.builder()
+                .email(email)
+                .displayName(displayName)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        user = userRepository.save(user);
+
+        var identity = UserIdentity.builder()
+                .user(user)
+                .provider(AuthProvider.DEV)
+                .providerSubject(email)
+                .email(email)
+                .build();
+
+        identityRepository.save(identity);
+
+        return user;
+    }
 }

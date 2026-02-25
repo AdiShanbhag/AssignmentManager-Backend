@@ -45,9 +45,9 @@ public class AssignmentController {
             patch.setTitle(t);
         }
         if (req.subject() != null) {
-            String t = req.subject().trim();
-            if (t.isEmpty()) throw new IllegalArgumentException("Subject cannot be blank");
-            patch.setTitle(t);
+            String s = req.subject().trim();
+            if (s.isEmpty()) throw new IllegalArgumentException("Subject cannot be blank");
+            patch.setSubject(s);
         }
 
         if (req.dueDate() != null) patch.setDueDate(req.dueDate());
