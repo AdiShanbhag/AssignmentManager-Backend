@@ -1,10 +1,10 @@
 package com.applicationplanner.api.config;
 
-import com.applicationplanner.api.security.JwtAuthFilter;
 import com.applicationplanner.api.auth.JwtService;
+import com.applicationplanner.api.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -18,10 +18,15 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf.disable());
 
-        // H2 console uses frames
         http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        http.exceptionHandling(eh -> eh.authenticationEntryPoint((req, res, ex) -> {
+            res.setStatus(HttpStatus.UNAUTHORIZED.value());
+            res.setContentType("application/json");
+            res.getWriter().write("{\"error\":\"unauthorized\"}");
+        }));
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/h2-console/**").permitAll()
@@ -29,9 +34,6 @@ public class SecurityConfig {
         );
 
         http.addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
-
-        // leave defaults for the rest
-        http.httpBasic(Customizer.withDefaults());
 
         return http.build();
     }

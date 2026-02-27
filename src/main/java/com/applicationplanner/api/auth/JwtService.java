@@ -11,7 +11,9 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 import io.jsonwebtoken.io.DecodingException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class JwtService {
 
@@ -22,6 +24,7 @@ public class JwtService {
             @Value("${app.auth.jwt.secret}") String secret,
             @Value("${app.auth.jwt.ttl-seconds}") long ttlSeconds
     ) {
+        //log.info("JWT ttlSeconds={}", ttlSeconds);
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException("JWT_SECRET is not set");
         }
