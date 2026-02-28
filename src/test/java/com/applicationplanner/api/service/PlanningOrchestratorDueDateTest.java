@@ -4,10 +4,14 @@ import com.applicationplanner.api.enums.PanicStatus;
 import com.applicationplanner.api.model.Assignment;
 import com.applicationplanner.api.model.Availability;
 import com.applicationplanner.api.model.Task;
+import com.applicationplanner.api.model.User;
 import com.applicationplanner.api.record.AssignmentPlanView;
 import com.applicationplanner.api.repository.AssignmentRepository;
 import com.applicationplanner.api.repository.TaskRepository;
+import com.applicationplanner.api.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +33,26 @@ class PlanningOrchestratorDueDateTest {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @BeforeEach
+    void setupAuth() {
+        User testUser = User.builder()
+                .id(WithMockUserId.TEST_USER_ID)
+                .email("test@test.com")
+                .displayName("Test User")
+                .build();
+        userRepository.save(testUser);
+
+        WithMockUserId.set();
+    }
+
+    @AfterEach
+    void clearAuth() {
+        WithMockUserId.clear();
+    }
 
     @Test
     void whenDueDateMovedEarlier_tasksBeyondNewWindowAreUnscheduled() {
