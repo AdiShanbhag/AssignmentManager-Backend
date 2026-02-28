@@ -9,6 +9,7 @@ import com.applicationplanner.api.record.AssignmentPlanView;
 import com.applicationplanner.api.repository.AssignmentRepository;
 import com.applicationplanner.api.repository.TaskRepository;
 import com.applicationplanner.api.repository.UserRepository;
+import com.applicationplanner.api.util.WithMockUserId;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

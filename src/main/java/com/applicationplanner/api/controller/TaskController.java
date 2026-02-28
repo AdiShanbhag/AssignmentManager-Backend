@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import static com.applicationplanner.api.util.TimezoneUtil.resolveToday;
+
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
@@ -22,8 +24,8 @@ public class TaskController {
     @PatchMapping("/{taskId}/toggle")
     public void toggleTask(@PathVariable UUID taskId,
                            @RequestParam UUID assignmentId,
-                           @RequestParam(required = false) String today) {
-        LocalDate effectiveToday = resolveToday(today);
+                           @RequestParam(required = false) String tz) {
+        LocalDate effectiveToday = resolveToday(tz);
         orchestrator.toggleTaskDoneAndPlan(assignmentId, taskId, effectiveToday);
     }
 
@@ -32,9 +34,9 @@ public class TaskController {
             @PathVariable UUID taskId,
             @RequestParam UUID assignmentId,
             @Valid @RequestBody UpdateTaskEffortHourRequest req,
-            @RequestParam(required = false) String today
+            @RequestParam(required = false) String tz
     ) {
-        LocalDate effectiveToday = resolveToday(today);
+        LocalDate effectiveToday = resolveToday(tz);
         orchestrator.updateTaskEffortAndPlan(assignmentId, taskId, req.effortHours(), effectiveToday);
     }
 
@@ -43,14 +45,9 @@ public class TaskController {
             @PathVariable UUID taskId,
             @RequestParam UUID assignmentId,
             @Valid @RequestBody UpdateTaskTitleRequest req,
-            @RequestParam(required = false) String today
+            @RequestParam(required = false) String tz
     ) {
-        LocalDate effectiveToday = resolveToday(today);
+        LocalDate effectiveToday = resolveToday(tz);
         orchestrator.updateTaskTitleAndPlan(assignmentId, taskId, req.title(), effectiveToday);
-    }
-
-    //Helper for resolving date conflicts between backend and frontend
-    private LocalDate resolveToday(String todayParam) {
-        return (todayParam != null) ? LocalDate.parse(todayParam) : LocalDate.now();
     }
 }

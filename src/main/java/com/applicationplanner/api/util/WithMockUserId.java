@@ -1,4 +1,4 @@
-package com.applicationplanner.api.service;
+package com.applicationplanner.api.util;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
