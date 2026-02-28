@@ -98,15 +98,17 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
         recomputePlan(today);
     }
 
-    @Override
     @Transactional(readOnly = true)
     public Availability getAvailabilityOrDefault() {
         UUID userId = CurrentUser.requireUserId();
+        return availabilityRepository.findByUserId(userId)
+                .orElseGet(() -> defaultAvailability(userId));
+    }
 
+    private Availability getOrCreateAvailability(UUID userId) {
         return availabilityRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    Availability a = defaultAvailability();
-                    a.setUserId(userId);
+                    Availability a = defaultAvailability(userId);
                     return availabilityRepository.save(a);
                 });
     }
@@ -118,7 +120,7 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
 
         Availability existing = availabilityRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    Availability a = defaultAvailability();
+                    Availability a = defaultAvailability(userId);
                     a.setUserId(userId);
                     return a;
                 });
@@ -177,47 +179,45 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
         requireOwnedAssignment(assignmentId, userId);
 
         Task t = requireTaskInAssignment(taskId, assignmentId);
-
         t.setDone(!t.isDone());
         taskRepository.save(t);
-
-        List<Task> tasks = taskRepository.findByAssignmentId(assignmentId);
-        List<Task> shifted = plannerService.applyMissedTaskShift(tasks, today);
-        taskRepository.saveAll(shifted);
 
         recomputePlan(today);
     }
 
-    @Override
     @Transactional
     public void recomputePlan(LocalDate today) {
         UUID userId = CurrentUser.requireUserId();
-
-        List<Assignment> assignments = assignmentRepository.findAllByUserIdOrderByDueDateAsc(userId);
+        List<Assignment> assignments = assignmentRepository
+                .findAllByUserIdOrderByDueDateAsc(userId);
 
         assignments.sort(Comparator
                 .comparing(Assignment::getDueDate)
                 .thenComparing(a -> Optional.ofNullable(a.getCreatedAt()).orElse(Instant.EPOCH))
-                .thenComparing(Assignment::getId)
-        );
+                .thenComparing(Assignment::getId));
 
-        Availability availability = getAvailabilityOrDefault();
+        Availability availability = getOrCreateAvailability(userId);
 
         List<UUID> ids = assignments.stream().map(Assignment::getId).toList();
-        List<Task> allTasks = ids.isEmpty() ? List.of() : taskRepository.findAllByAssignmentIdIn(ids);
+        List<Task> allTasks = ids.isEmpty()
+                ? List.of()
+                : taskRepository.findAllByAssignmentIdIn(ids);
 
+        // Apply missed shift per assignment before global plan
         Map<UUID, List<Task>> tasksByAssignmentId = groupTasksByAssignmentId(allTasks);
+        for (UUID id : tasksByAssignmentId.keySet()) {
+            List<Task> shifted = plannerService.applyMissedTaskShift(
+                    tasksByAssignmentId.get(id), today
+            );
+            tasksByAssignmentId.put(id, shifted);
+        }
 
         Map<UUID, List<Task>> planned = plannerService.buildGlobalPlan(
-                assignments,
-                tasksByAssignmentId,
-                availability,
-                today
+                assignments, tasksByAssignmentId, availability, today
         );
 
         List<Task> flattened = new ArrayList<>();
         for (List<Task> list : planned.values()) flattened.addAll(list);
-
         taskRepository.saveAll(flattened);
     }
 
@@ -225,36 +225,26 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
     @Transactional(readOnly = true)
     public List<AssignmentPlanView> getPlanView(LocalDate today) {
         UUID userId = CurrentUser.requireUserId();
-        List<Assignment> assignments = assignmentRepository.findAllByUserIdOrderByDueDateAsc(userId);
+        List<Assignment> assignments = assignmentRepository
+                .findAllByUserIdOrderByDueDateAsc(userId);
 
-        // Sort the same way global planning does: earliest due date first (tie-breaker: createdAt/id)
         assignments.sort(Comparator
                 .comparing(Assignment::getDueDate)
                 .thenComparing(a -> Optional.ofNullable(a.getCreatedAt()).orElse(Instant.EPOCH))
-                .thenComparing(Assignment::getId)
-        );
-
-        Availability availability = getAvailabilityOrDefault();
+                .thenComparing(Assignment::getId));
 
         List<UUID> ids = assignments.stream().map(Assignment::getId).toList();
-        List<Task> allTasks = ids.isEmpty() ? List.of() : taskRepository.findAllByAssignmentIdIn(ids);
+        List<Task> allTasks = ids.isEmpty()
+                ? List.of()
+                : taskRepository.findAllByAssignmentIdIn(ids);
 
         Map<UUID, List<Task>> grouped = groupTasksByAssignmentId(allTasks);
 
-        Map<UUID, List<Task>> planned = plannerService.buildGlobalPlan(
-                assignments,
-                grouped,
-                availability,
-                today
-        );
-
         List<AssignmentPlanView> result = new ArrayList<>();
         for (Assignment a : assignments) {
-            List<Task> tasks = planned.getOrDefault(a.getId(), List.of());
+            List<Task> tasks = grouped.getOrDefault(a.getId(), List.of());
             PanicStatus status = plannerService.computePanicStatusV2(a, tasks, today);
-
-            int consumed = hoursConsumedByEarlierAssignments(assignments, planned, a, today);
-
+            int consumed = hoursConsumedByEarlierAssignments(assignments, grouped, a, today);
             result.add(new AssignmentPlanView(a, status, tasks, consumed));
         }
         return result;
@@ -287,8 +277,10 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
         return t;
     }
 
-    private Availability defaultAvailability() {
-        return getAvailability();
+    private Availability defaultAvailability(UUID userId) {
+        Availability a = Availability.getAvailability();
+        a.setUserId(userId);
+        return a;
     }
 
     private int computePlanningDaysAtCreation(LocalDate createdDay, LocalDate dueDate) {
