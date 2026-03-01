@@ -8,7 +8,9 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.util.UUID;
+
+import static com.applicationplanner.api.util.TimezoneUtil.resolveToday;
 
 @RestController
 @RequestMapping("/assignments")
@@ -21,8 +23,10 @@ public class AssignmentController {
     }
 
     @PostMapping
-    public Assignment create(@Valid @RequestBody CreateAssignmentRequest req, @RequestParam(required = false) String today) {
-        LocalDate effectiveToday = resolveToday(today);
+    public Assignment create(
+            @Valid @RequestBody CreateAssignmentRequest req,
+            @RequestParam(required = false) String tz) {
+        LocalDate effectiveToday = resolveToday(tz);
         Assignment a = new Assignment();
         a.setTitle(req.title().trim());
         a.setSubject(req.subject().trim());
@@ -32,11 +36,10 @@ public class AssignmentController {
 
     @PatchMapping("/{assignmentId}")
     public void update(
-            @PathVariable java.util.UUID assignmentId,
+            @PathVariable UUID assignmentId,
             @RequestBody UpdateAssignmentRequest req,
-            @RequestParam(required = false) String today
-    ) {
-        LocalDate effectiveToday = resolveToday(today);
+            @RequestParam(required = false) String tz) {
+        LocalDate effectiveToday = resolveToday(tz);
         Assignment patch = new Assignment();
 
         if (req.title() != null) {
@@ -49,20 +52,16 @@ public class AssignmentController {
             if (s.isEmpty()) throw new IllegalArgumentException("Subject cannot be blank");
             patch.setSubject(s);
         }
-
         if (req.dueDate() != null) patch.setDueDate(req.dueDate());
 
         orchestrator.updateAssignmentAndPlan(assignmentId, patch, effectiveToday);
     }
 
     @DeleteMapping("/{assignmentId}")
-    public void delete(@PathVariable java.util.UUID assignmentId, @RequestParam(required = false) String today) {
-        LocalDate effectiveToday = resolveToday(today);
+    public void delete(
+            @PathVariable UUID assignmentId,
+            @RequestParam(required = false) String tz) {
+        LocalDate effectiveToday = resolveToday(tz);
         orchestrator.removeAssignment(assignmentId, effectiveToday);
-    }
-
-    //Helper for resolving date conflicts between backend and frontend
-    private LocalDate resolveToday(String todayParam) {
-        return (todayParam != null) ? LocalDate.parse(todayParam) : LocalDate.now();
     }
 }

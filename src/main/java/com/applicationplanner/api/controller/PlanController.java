@@ -2,6 +2,7 @@ package com.applicationplanner.api.controller;
 
 import com.applicationplanner.api.dto.responseDTO.PlanViewResponse;
 import com.applicationplanner.api.dto.responseDTO.TaskViewResponse;
+import com.applicationplanner.api.model.Task;
 import com.applicationplanner.api.record.AssignmentPlanView;
 import com.applicationplanner.api.service.PlanningOrchestratorService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+
+import static com.applicationplanner.api.util.TimezoneUtil.resolveToday;
 
 @RestController
 public class PlanController {
@@ -23,10 +26,9 @@ public class PlanController {
 
     @GetMapping("/plan")
     public List<PlanViewResponse> getPlan(
-            @RequestParam(required = false) String today
+            @RequestParam(required = false) String tz
     ) {
-        LocalDate effectiveToday =
-                (today != null) ? LocalDate.parse(today) : LocalDate.now();
+        LocalDate effectiveToday = resolveToday(tz);
 
         List<AssignmentPlanView> views = orchestrator.getPlanView(effectiveToday);
 
@@ -42,7 +44,7 @@ public class PlanController {
                         v.assignment().getPlanningDays(),
                         v.panicStatus(),
                         v.tasks().stream()
-                                .sorted(Comparator.comparingInt(t -> t.getOrderIndex()))
+                                .sorted(Comparator.comparingInt(Task::getOrderIndex))
                                 .map(t -> new TaskViewResponse(
                                         t.getId(),
                                         t.getAssignmentId(),

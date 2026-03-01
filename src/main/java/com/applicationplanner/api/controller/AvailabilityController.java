@@ -7,6 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
+
+import static com.applicationplanner.api.util.TimezoneUtil.resolveToday;
 
 @RestController
 @RequestMapping("/availability")
@@ -24,9 +27,8 @@ public class AvailabilityController {
     }
 
     @PutMapping
-    public void setAvailability(@Valid @RequestBody AvailabilityRequest req, @RequestParam(required = false) String today) {
-        LocalDate effectiveToday =
-                (today != null) ? LocalDate.parse(today) : LocalDate.now();
+    public void setAvailability(@Valid @RequestBody AvailabilityRequest req, @RequestParam(required = false) String tz) {
+        LocalDate effectiveToday = resolveToday(tz);
 
         Availability a = new Availability();
         a.setMonHours(req.monHours());
