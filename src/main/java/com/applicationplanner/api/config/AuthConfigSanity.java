@@ -14,7 +14,7 @@ public class AuthConfigSanity {
             @Value("${app.auth.jwt.secret}") String jwtSecret
     ) {
         return args -> {
-            System.out.println("[AuthConfig] google client ids present: " + (!clientIds.isBlank()));
+            //System.out.println("[AuthConfig] google client ids present: " + (!clientIds.isBlank()));
             //System.out.println("[AuthConfig] jwt secret length: " + jwtSecret.length());
         };
     }
