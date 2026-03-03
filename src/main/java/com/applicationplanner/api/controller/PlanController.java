@@ -5,32 +5,32 @@ import com.applicationplanner.api.dto.responseDTO.TaskViewResponse;
 import com.applicationplanner.api.model.Task;
 import com.applicationplanner.api.record.AssignmentPlanView;
 import com.applicationplanner.api.service.PlanningOrchestratorService;
+import com.applicationplanner.api.util.TimezoneResolver;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 
-import static com.applicationplanner.api.util.TimezoneUtil.resolveToday;
-
 @RestController
 public class PlanController {
 
     private final PlanningOrchestratorService orchestrator;
+    private final TimezoneResolver timezoneResolver;
 
-    public PlanController(PlanningOrchestratorService orchestrator) {
+    public PlanController(PlanningOrchestratorService orchestrator,
+    TimezoneResolver timezoneResolver)
+    {
         this.orchestrator = orchestrator;
+        this.timezoneResolver = timezoneResolver;
     }
 
     @GetMapping("/plan")
-    public List<PlanViewResponse> getPlan(
-            @RequestParam(required = false) String tz
-    ) {
-        LocalDate effectiveToday = resolveToday(tz);
+    public List<PlanViewResponse> getPlan() {
+        LocalDate today = timezoneResolver.resolveToday();
 
-        List<AssignmentPlanView> views = orchestrator.getPlanView(effectiveToday);
+        List<AssignmentPlanView> views = orchestrator.getPlanView(today);
 
         // Optional: keep UI predictable. Frontend stored newest first on add, but global planning sorts by dueDate.
         // Here we sort by dueDate to make the response stable.

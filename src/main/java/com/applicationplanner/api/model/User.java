@@ -30,6 +30,16 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "university")
+    private String university;
+
+    @Builder.Default
+    @Column(name = "timezone", nullable = false)
+    private String timezone = "UTC";
+
     @PrePersist
     void onCreate() {
         if (id == null) id = UUID.randomUUID();

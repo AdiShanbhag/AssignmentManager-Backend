@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record ApiError(
-        Instant timestamp,
+        String timestamp,
         int status,
         String code,
         String message,
@@ -15,7 +15,7 @@ public record ApiError(
 
     public static ApiError of(int status, String code, String message, String path, List<FieldViolation> violations) {
         return new ApiError(
-                Instant.now(),
+                Instant.now().toString(),
                 status,
                 code,
                 message,
