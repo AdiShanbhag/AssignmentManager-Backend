@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/auth")
@@ -65,8 +66,8 @@ public class AuthController {
             response.sendRedirect(
                     "com.aditya1374.assignmentmanager://auth?token=" + jwt
                             + "&userId=" + user.getId()
-                            + "&email=" + URLEncoder.encode(user.getEmail(), "UTF-8")
-                            + "&displayName=" + URLEncoder.encode(user.getDisplayName() != null ? user.getDisplayName() : "", "UTF-8")
+                            + "&email=" + URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8)
+                            + "&displayName=" + URLEncoder.encode(user.getDisplayName() != null ? user.getDisplayName() : "", StandardCharsets.UTF_8)
             );
         } catch (Exception e) {
             System.out.println("CALLBACK ERROR: " + e.getMessage());
