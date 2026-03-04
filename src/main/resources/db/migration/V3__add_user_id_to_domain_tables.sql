@@ -2,14 +2,16 @@
 ALTER TABLE assignments ADD COLUMN user_id UUID;
 ALTER TABLE availability ADD COLUMN user_id UUID;
 
--- Backfill existing rows to the oldest user (dev safety)
+-- Backfill existing rows to the oldest user (dev safety) -- By Claude - Safe backfill that only runs if users exist, skips on fresh DB
 UPDATE assignments
 SET user_id = (SELECT id FROM users ORDER BY created_at LIMIT 1)
-WHERE user_id IS NULL;
+WHERE user_id IS NULL
+  AND EXISTS (SELECT 1 FROM users);
 
 UPDATE availability
 SET user_id = (SELECT id FROM users ORDER BY created_at LIMIT 1)
-WHERE user_id IS NULL;
+WHERE user_id IS NULL
+  AND EXISTS (SELECT 1 FROM users);
 
 -- Enforce NOT NULL now that data is backfilled
 ALTER TABLE assignments ALTER COLUMN user_id SET NOT NULL;
