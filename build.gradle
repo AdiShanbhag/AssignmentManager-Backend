@@ -28,6 +28,7 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.flywaydb:flyway-database-postgresql:10.20.1'
+	implementation 'com.google.auth:google-auth-library-oauth2-http:1.23.0'
 	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 	implementation "com.google.api-client:google-api-client:2.7.0"
 	implementation "io.jsonwebtoken:jjwt-api:0.12.6"
