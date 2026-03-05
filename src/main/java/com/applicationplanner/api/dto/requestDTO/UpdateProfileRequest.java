@@ -1,6 +1,8 @@
-// UpdateProfileRequest.java
 package com.applicationplanner.api.dto.requestDTO;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record UpdateProfileRequest(
@@ -14,5 +16,20 @@ public record UpdateProfileRequest(
         String university,
 
         @Size(max = 100, message = "Timezone must be at most 100 characters")
-        String timezone
+        String timezone,
+
+        Boolean notificationsEnabled,
+
+        Boolean dailyReminderEnabled,
+
+        @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Daily reminder time must be in HH:mm format")
+        String dailyReminderTime,
+
+        Boolean dueDateWarningEnabled,
+
+        @Min(value = 1, message = "Due date warning must be at least 1 day before")
+        @Max(value = 30, message = "Due date warning must be at most 30 days before")
+        Integer dueDateWarningDaysBefore,
+
+        Boolean atRiskAlertEnabled
 ) {}

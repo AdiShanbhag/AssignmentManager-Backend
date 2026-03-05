@@ -35,7 +35,7 @@ public class UserController {
 
     /**
      * Updates the current authenticated user's profile fields.
-     * Only non-null fields in the request body are updated. by Claude
+     * Only non-null fields in the request body are updated. By Claude
      */
     @PatchMapping("/me")
     public UserProfileResponse updateMe(@Valid @RequestBody UpdateProfileRequest req) {
@@ -47,24 +47,25 @@ public class UserController {
             if (name.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayName cannot be blank");
             user.setDisplayName(name);
         }
-
-        if (req.phoneNumber() != null) {
-            user.setPhoneNumber(req.phoneNumber().trim());
-        }
-
-        if (req.university() != null) {
-            user.setUniversity(req.university().trim());
-        }
-
+        if (req.phoneNumber() != null) user.setPhoneNumber(req.phoneNumber().trim());
+        if (req.university() != null) user.setUniversity(req.university().trim());
         if (req.timezone() != null) {
             String tz = req.timezone().trim();
             try {
-                ZoneId.of(tz); // validate it's a real timezone
+                ZoneId.of(tz);
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid timezone: " + tz);
             }
             user.setTimezone(tz);
         }
+
+        // By Claude - Handle notification preference updates for Story 11.1
+        if (req.notificationsEnabled() != null) user.setNotificationsEnabled(req.notificationsEnabled());
+        if (req.dailyReminderEnabled() != null) user.setDailyReminderEnabled(req.dailyReminderEnabled());
+        if (req.dailyReminderTime() != null) user.setDailyReminderTime(req.dailyReminderTime().trim());
+        if (req.dueDateWarningEnabled() != null) user.setDueDateWarningEnabled(req.dueDateWarningEnabled());
+        if (req.dueDateWarningDaysBefore() != null) user.setDueDateWarningDaysBefore(req.dueDateWarningDaysBefore());
+        if (req.atRiskAlertEnabled() != null) user.setAtRiskAlertEnabled(req.atRiskAlertEnabled());
 
         userRepository.save(user);
         return toResponse(user);
@@ -81,7 +82,13 @@ public class UserController {
                 user.getPhoneNumber(),
                 user.getUniversity(),
                 user.getTimezone(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.isNotificationsEnabled(),
+                user.isDailyReminderEnabled(),
+                user.getDailyReminderTime(),
+                user.isDueDateWarningEnabled(),
+                user.getDueDateWarningDaysBefore(),
+                user.isAtRiskAlertEnabled()
         );
     }
 

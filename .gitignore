@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+#Commands file
+Commands.txt
+
 ### Db stuff, local ###
 /data/
 /*.mv.db
