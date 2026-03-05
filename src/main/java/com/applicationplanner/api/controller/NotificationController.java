@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 // By Claude - Handles device token registration and unregistration for push notifications (Story 11.2)
@@ -25,14 +26,23 @@ public class NotificationController {
 
     /**
      * Registers a device token for the current user.
-     * If the token already exists, it is left as-is (idempotent). By Claude
+     * If the token exists for a different user, reassigns it to the current user. By Claude
      */
     @PostMapping("/register-token")
     public ResponseEntity<Void> registerToken(@Valid @RequestBody RegisterTokenRequest req) {
         UUID userId = CurrentUser.requireUserId();
 
-        // idempotent - don't create duplicate if token already registered
-        if (deviceTokenRepository.findByToken(req.token()).isPresent()) {
+        Optional<DeviceToken> existing = deviceTokenRepository.findByToken(req.token());
+
+        if (existing.isPresent()) {
+            DeviceToken token = existing.get();
+            if (token.getUserId().equals(userId)) {
+                // Same user, same token — nothing to do
+                return ResponseEntity.ok().build();
+            }
+            // Different user on same device — reassign token
+            token.setUserId(userId);
+            deviceTokenRepository.save(token);
             return ResponseEntity.ok().build();
         }
 

@@ -15,9 +15,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
+import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
@@ -141,5 +141,37 @@ class NotificationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Verifies that registering an existing token for a different user reassigns it. By Claude
+     */
+    @Test
+    void registerToken_existingTokenDifferentUser_reassignsToken() throws Exception {
+        UUID differentUserId = UUID.fromString("00000000-0000-0000-0000-000000000002");
+
+        DeviceToken existingToken = DeviceToken.builder()
+                .token("shared-device-token")
+                .platform("android")
+                .userId(differentUserId) // belongs to a different user
+                .build();
+
+        when(deviceTokenRepository.findByToken("shared-device-token"))
+                .thenReturn(Optional.of(existingToken));
+
+        mockMvc.perform(post("/notifications/register-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "token": "shared-device-token",
+                                "platform": "android"
+                            }
+                            """))
+                .andExpect(status().isOk());
+
+        // verify token was saved with the new user id
+        verify(deviceTokenRepository).save(argThat(token ->
+                token.getUserId().equals(WithMockUserId.TEST_USER_ID)
+        ));
     }
 }
