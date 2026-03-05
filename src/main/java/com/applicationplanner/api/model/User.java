@@ -40,6 +40,31 @@ public class User {
     @Column(name = "timezone", nullable = false)
     private String timezone = "UTC";
 
+    // By Claude - Notification preference fields for Story 11.1
+    @Builder.Default
+    @Column(name = "notifications_enabled", nullable = false)
+    private boolean notificationsEnabled = true;
+
+    @Builder.Default
+    @Column(name = "daily_reminder_enabled", nullable = false)
+    private boolean dailyReminderEnabled = true;
+
+    @Builder.Default
+    @Column(name = "daily_reminder_time", nullable = false)
+    private String dailyReminderTime = "08:00";
+
+    @Builder.Default
+    @Column(name = "due_date_warning_enabled", nullable = false)
+    private boolean dueDateWarningEnabled = true;
+
+    @Builder.Default
+    @Column(name = "due_date_warning_days_before", nullable = false)
+    private int dueDateWarningDaysBefore = 2;
+
+    @Builder.Default
+    @Column(name = "at_risk_alert_enabled", nullable = false)
+    private boolean atRiskAlertEnabled = true;
+
     @PrePersist
     void onCreate() {
         if (id == null) id = UUID.randomUUID();

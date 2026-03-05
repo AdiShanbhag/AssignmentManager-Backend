@@ -11,6 +11,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -90,6 +91,20 @@ public class GlobalExceptionHandler {
                 req.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Handles ResponseStatusException and maps it to the correct HTTP status code. By Claude
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex, HttpServletRequest req) {
+        ApiError body = ApiError.simple(
+                ex.getStatusCode().value(),
+                "ERROR",
+                ex.getReason() != null ? ex.getReason() : ex.getMessage(),
+                req.getRequestURI()
+        );
+        return ResponseEntity.status(ex.getStatusCode()).body(body);
     }
 
     private Violation toViolation(FieldError fe) {
