@@ -20,7 +20,8 @@ public interface PlannerService {
             List<Assignment> assignments,
             Map<UUID, List<Task>> tasksByAssignmentId,
             Availability availability,
-            LocalDate today
+            LocalDate today,
+            Map<UUID, LocalDate> effectiveStartDates
     );
 
     // Mirrors applyMissedTaskShift(tasks)

@@ -15,6 +15,7 @@ public class AssignmentMapper {
         res.title = a.getTitle();
         res.subject = a.getSubject();
         res.dueDate = a.getDueDate();
+        res.startDate = a.getStartDate();
 
         res.tasks = tasks.stream()
                 .sorted(Comparator.comparingInt(Task::getOrderIndex))

@@ -53,6 +53,8 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
         Instant createdAt = Instant.now();
         assignmentInput.setCreatedAt(createdAt);
 
+        LocalDate effectiveStart = effectiveStartDate(assignmentInput.getStartDate(), today);
+
         int planningDays = computePlanningDaysAtCreation(today, assignmentInput.getDueDate());
         assignmentInput.setPlanningDays(planningDays);
 
@@ -203,17 +205,30 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
                 ? List.of()
                 : taskRepository.findAllByAssignmentIdIn(ids);
 
+        Map<UUID, LocalDate> effectiveStartDates = new HashMap<>();
+        for (Assignment a : assignments) {
+            effectiveStartDates.put(a.getId(), effectiveStartDate(a.getStartDate(), today));
+        }
+
         // Apply missed shift per assignment before global plan
         Map<UUID, List<Task>> tasksByAssignmentId = groupTasksByAssignmentId(allTasks);
         for (UUID id : tasksByAssignmentId.keySet()) {
+
+            Assignment assignment = assignments.stream()
+                    .filter(a -> a.getId().equals(id))
+                    .findFirst().orElse(null);
+            LocalDate effectiveStart = assignment != null
+                    ? effectiveStartDate(assignment.getStartDate(), today)
+                    : today;
+
             List<Task> shifted = plannerService.applyMissedTaskShift(
-                    tasksByAssignmentId.get(id), today
+                    tasksByAssignmentId.get(id), effectiveStart
             );
             tasksByAssignmentId.put(id, shifted);
         }
 
         Map<UUID, List<Task>> planned = plannerService.buildGlobalPlan(
-                assignments, tasksByAssignmentId, availability, today
+                assignments, tasksByAssignmentId, availability, today, effectiveStartDates
         );
 
         List<Task> flattened = new ArrayList<>();
@@ -315,5 +330,16 @@ public class PlanningOrchestratorServiceImpl implements PlanningOrchestratorServ
             }
         }
         return total;
+    }
+
+    /**
+     * Returns the effective start date for planning.
+     * If startDate is set and in the future, use it. Otherwise use today. By Claude
+     */
+    private LocalDate effectiveStartDate(LocalDate startDate, LocalDate today) {
+        if (startDate != null && startDate.isAfter(today)) {
+            return startDate;
+        }
+        return today;
     }
 }

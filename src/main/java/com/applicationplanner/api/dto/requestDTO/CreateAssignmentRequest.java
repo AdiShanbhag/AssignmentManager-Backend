@@ -9,5 +9,6 @@ import java.time.LocalDate;
 public record CreateAssignmentRequest (
     @NotBlank String title,
     @NotBlank String subject,
-    @NotNull @FutureOrPresent LocalDate dueDate
+    @NotNull @FutureOrPresent LocalDate dueDate,
+    LocalDate startDate
 ){}

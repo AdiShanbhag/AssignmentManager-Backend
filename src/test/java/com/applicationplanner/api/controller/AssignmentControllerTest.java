@@ -164,6 +164,152 @@ class AssignmentControllerTest {
         verify(orchestrator).removeAssignment(eq(id), eq(expected));
     }
 
+    // --- Start Date Tests ---
+
+    /**
+     * Verifies that creating an assignment with a valid start date before due date succeeds. By Claude
+     */
+    @Test
+    void create_withValidStartDate_returns200() throws Exception {
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+        LocalDate dueDate = today.plusDays(14);
+        LocalDate startDate = today.plusDays(7);
+
+        Assignment stub = new Assignment();
+        stub.setId(UUID.randomUUID());
+        stub.setTitle("Test");
+        stub.setSubject("Math");
+        stub.setDueDate(dueDate);
+        stub.setStartDate(startDate);
+        when(orchestrator.createAssignmentAndPlan(any(), any())).thenReturn(stub);
+
+        mockMvc.perform(post("/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "title": "Test",
+                                "subject": "Math",
+                                "dueDate": "%s",
+                                "startDate": "%s"
+                            }
+                            """.formatted(dueDate, startDate)))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * Verifies that creating an assignment with startDate after dueDate returns 400. By Claude
+     */
+    @Test
+    void create_withStartDateAfterDueDate_returns400() throws Exception {
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+        LocalDate dueDate = today.plusDays(7);
+        LocalDate startDate = today.plusDays(14); // start after due
+
+        mockMvc.perform(post("/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "title": "Test",
+                                "subject": "Math",
+                                "dueDate": "%s",
+                                "startDate": "%s"
+                            }
+                            """.formatted(dueDate, startDate)))
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Verifies that creating an assignment with startDate equal to dueDate returns 400. By Claude
+     */
+    @Test
+    void create_withStartDateEqualToDueDate_returns400() throws Exception {
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+        LocalDate dueDate = today.plusDays(7);
+
+        mockMvc.perform(post("/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "title": "Test",
+                                "subject": "Math",
+                                "dueDate": "%s",
+                                "startDate": "%s"
+                            }
+                            """.formatted(dueDate, dueDate)))
+                .andExpect(status().isBadRequest());
+    }
+
+    /**
+     * Verifies that creating an assignment without startDate still succeeds. By Claude
+     */
+    @Test
+    void create_withNoStartDate_returns200() throws Exception {
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+        LocalDate dueDate = today.plusDays(7);
+
+        Assignment stub = new Assignment();
+        stub.setId(UUID.randomUUID());
+        stub.setTitle("Test");
+        stub.setSubject("Math");
+        stub.setDueDate(dueDate);
+        when(orchestrator.createAssignmentAndPlan(any(), any())).thenReturn(stub);
+
+        mockMvc.perform(post("/assignments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "title": "Test",
+                                "subject": "Math",
+                                "dueDate": "%s"
+                            }
+                            """.formatted(dueDate)))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * Verifies that updating an assignment with a valid start date succeeds. By Claude
+     */
+    @Test
+    void update_withValidStartDate_returns200() throws Exception {
+        UUID id = UUID.randomUUID();
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+        LocalDate dueDate = today.plusDays(14);
+        LocalDate startDate = today.plusDays(7);
+
+        mockMvc.perform(patch("/assignments/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "dueDate": "%s",
+                                "startDate": "%s"
+                            }
+                            """.formatted(dueDate, startDate)))
+                .andExpect(status().isOk());
+
+        verify(orchestrator).updateAssignmentAndPlan(eq(id), any(), any());
+    }
+
+    /**
+     * Verifies that updating an assignment with startDate after dueDate returns 400. By Claude
+     */
+    @Test
+    void update_withStartDateAfterDueDate_returns400() throws Exception {
+        UUID id = UUID.randomUUID();
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
+        LocalDate dueDate = today.plusDays(7);
+        LocalDate startDate = today.plusDays(14);
+
+        mockMvc.perform(patch("/assignments/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "dueDate": "%s",
+                                "startDate": "%s"
+                            }
+                            """.formatted(dueDate, startDate)))
+                .andExpect(status().isBadRequest());
+    }
+
     // --- Request body helper ---
     record CreateBody(String title, String subject, String dueDate) {}
 }

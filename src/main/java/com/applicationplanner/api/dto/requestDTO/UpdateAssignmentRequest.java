@@ -7,5 +7,6 @@ import java.time.LocalDate;
 public record UpdateAssignmentRequest(
         String title,
         String subject,
-        @FutureOrPresent LocalDate dueDate
+        @FutureOrPresent LocalDate dueDate,
+        LocalDate startDate
 ) {}

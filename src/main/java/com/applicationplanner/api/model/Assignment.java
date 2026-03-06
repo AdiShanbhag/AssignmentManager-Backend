@@ -40,6 +40,9 @@ public class Assignment {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "start_date", nullable = true)
+    private LocalDate startDate;
+
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = Instant.now();

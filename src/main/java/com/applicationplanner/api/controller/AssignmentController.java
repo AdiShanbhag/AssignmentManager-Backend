@@ -6,7 +6,9 @@ import com.applicationplanner.api.model.Assignment;
 import com.applicationplanner.api.service.PlanningOrchestratorService;
 import com.applicationplanner.api.util.TimezoneResolver;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -30,11 +32,16 @@ public class AssignmentController {
      */
     @PostMapping
     public Assignment create(@Valid @RequestBody CreateAssignmentRequest req) {
+        if (req.startDate() != null && !req.startDate().isBefore(req.dueDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate must be before dueDate");
+        }
+
         LocalDate today = timezoneResolver.resolveToday();
         Assignment a = new Assignment();
         a.setTitle(req.title().trim());
         a.setSubject(req.subject().trim());
         a.setDueDate(req.dueDate());
+        a.setStartDate(req.startDate());
         return orchestrator.createAssignmentAndPlan(a, today);
     }
 
@@ -45,6 +52,12 @@ public class AssignmentController {
     public void update(
             @PathVariable UUID assignmentId,
             @RequestBody UpdateAssignmentRequest req) {
+
+        if (req.startDate() != null && req.dueDate() != null &&
+                !req.startDate().isBefore(req.dueDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate must be before dueDate");
+        }
+
         LocalDate today = timezoneResolver.resolveToday();
         Assignment patch = new Assignment();
 
@@ -58,6 +71,7 @@ public class AssignmentController {
             if (s.isEmpty()) throw new IllegalArgumentException("Subject cannot be blank");
             patch.setSubject(s);
         }
+        if (req.startDate() != null) patch.setStartDate(req.startDate());
         if (req.dueDate() != null) patch.setDueDate(req.dueDate());
 
         orchestrator.updateAssignmentAndPlan(assignmentId, patch, today);

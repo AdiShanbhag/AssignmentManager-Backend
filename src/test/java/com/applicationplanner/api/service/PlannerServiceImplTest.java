@@ -91,13 +91,17 @@ class PlannerServiceImplTest {
         t.setEffortHours(2);
         t.setDone(false);
 
-        Availability avail = uniformAvailability(4); // 4 hours every day
+        Availability avail = uniformAvailability(4);
+
+        // By Claude - Pass effectiveStartDates map with today as start for this assignment
+        Map<UUID, LocalDate> effectiveStartDates = Map.of(a.getId(), TODAY);
 
         Map<UUID, List<Task>> result = planner.buildGlobalPlan(
                 List.of(a),
                 Map.of(a.getId(), List.of(t)),
                 avail,
-                TODAY
+                TODAY,
+                effectiveStartDates
         );
 
         Task planned = result.get(a.getId()).get(0);
@@ -113,16 +117,20 @@ class PlannerServiceImplTest {
         Task t = new Task();
         t.setId(UUID.randomUUID());
         t.setAssignmentId(a.getId());
-        t.setEffortHours(100); // impossible
+        t.setEffortHours(100);
         t.setDone(false);
 
         Availability avail = uniformAvailability(1);
+
+        // By Claude - Pass effectiveStartDates map with today as start for this assignment
+        Map<UUID, LocalDate> effectiveStartDates = Map.of(a.getId(), TODAY);
 
         Map<UUID, List<Task>> result = planner.buildGlobalPlan(
                 List.of(a),
                 Map.of(a.getId(), List.of(t)),
                 avail,
-                TODAY
+                TODAY,
+                effectiveStartDates
         );
 
         assertTrue(result.get(a.getId()).get(0).isUnscheduled());

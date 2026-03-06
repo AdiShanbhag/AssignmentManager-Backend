@@ -16,7 +16,7 @@ public class AssignmentResponse {
     public String title;
     public String subject;
     public LocalDate dueDate;
-
+    public LocalDate startDate;
     public String status;            // "ON_TRACK" / "AT_RISK" / "SCREWED" (optional now)
     public List<TaskResponse> tasks; // optional for list endpoint, required for detail
 

@@ -59,7 +59,8 @@ public class PlannerServiceImpl implements PlannerService {
             List<Assignment> assignments,
             Map<UUID, List<Task>> tasksByAssignmentId,
             Availability availability,
-            LocalDate today
+            LocalDate today,
+            Map<UUID, LocalDate> effectiveStartDates
     ) {
         if (assignments == null || assignments.isEmpty()) return tasksByAssignmentId;
 
@@ -82,7 +83,7 @@ public class PlannerServiceImpl implements PlannerService {
             UUID assignmentId = a.getId();
             LocalDate end = workEndFromDue(a.getDueDate());
 
-            LocalDate cursor = today; // cursor = todayDate()
+            LocalDate cursor = effectiveStartDates.getOrDefault(assignmentId, today);
 
             List<Task> currentTasks = next.getOrDefault(assignmentId, List.of());
 
