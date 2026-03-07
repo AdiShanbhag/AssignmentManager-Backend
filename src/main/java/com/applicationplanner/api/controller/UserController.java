@@ -93,6 +93,17 @@ public class UserController {
     }
 
     /**
+     * Deletes the current authenticated user's account and all associated data. By Claude
+     */
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMe() {
+        UUID userId = CurrentUser.requireUserId();
+        User user = requireUser(userId);
+        userRepository.delete(user);
+    }
+
+    /**
      * Fetches the user by ID or throws 404. by Claude
      */
     private User requireUser(UUID userId) {
