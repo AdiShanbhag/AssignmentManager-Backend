@@ -9,6 +9,7 @@ public record PlanViewResponse(
         UUID assignmentId,
         String title,
         String subject,
+        String startDate,
         String dueDate,          // YYYY-MM-DD
         int planningDays,
         PanicStatus panicStatus,

@@ -40,6 +40,7 @@ public class PlanController {
                         v.assignment().getId(),
                         v.assignment().getTitle(),
                         v.assignment().getSubject(),
+                        v.assignment().getStartDate() != null ? v.assignment().getStartDate().toString() : null,
                         v.assignment().getDueDate().toString(),
                         v.assignment().getPlanningDays(),
                         v.panicStatus(),
